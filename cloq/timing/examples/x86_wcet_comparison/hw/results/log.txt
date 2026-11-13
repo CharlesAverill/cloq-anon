@@ -1,0 +1,8 @@
+counter overhead: min 70, median 70, max 71 cycles
+sum
+while_true_break
+find
+collatz
+find_in_list
+insert_after_pos_in_list
+insert_in_sorted_list

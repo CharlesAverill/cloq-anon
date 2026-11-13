@@ -1,0 +1,9 @@
+.git
+results
+**/*.vo
+**/*.vok
+**/*.vos
+**/*.glob
+**/.*.aux
+**/__pycache__
+**/.venv

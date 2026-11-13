@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "tig"
+version = "0.1.0"
+description = ""
+authors = ["Anonymous <anonymous@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+matplotlib = "^3.10.1"
+sympy = "^1.13.3"
+networkx = "^3.4.2"
+# angr = "^9.2.148"
+pypcode = { git = "https://github.com/spencerwuwu/pypcode" }
+angr = "^9.2.152"
+
+[tool.uv.sources]
+archinfo = { git = "https://github.com/angr/archinfo.git", branch = "master" }
+pyvex = { git = "https://github.com/angr/pyvex.git", branch = "master" }
+cle = { git = "https://github.com/angr/cle.git", branch = "master" }
+claripy = { git = "https://github.com/angr/claripy.git", branch = "master" }
+ailment = { git = "https://github.com/angr/ailment.git", branch = "master" }
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.15.0"
+types-networkx = "^3.4.2"
+black = "^25.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+tig = "tig.tig:main"

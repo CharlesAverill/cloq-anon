@@ -1,0 +1,8 @@
+# Copy of cache.ais with loop bounds matching the input ranges in the paper's
+# RapiTime table, following the same convention as the original bounds.
+# enter AIS annotations here or use 'Insert AIS annotation...' from the context menu
+compiler: "GCC";
+
+loop "sum.L1" {
+    bound: 0 .. 1000;
+}

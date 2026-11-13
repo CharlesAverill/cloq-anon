@@ -1,0 +1,63 @@
+== sum  (1001 inputs; in = size)
+   functional result correct      : 1001/1001
+   slowest run <= bound           : 1000/1001   (all runs, incl. interrupted: 1000/1001)
+   median run <= bound            : 1001/1001
+   slowest run / bound            : min 0.071, mean 0.087, max 1.263
+   interrupted runs (discarded)   : 1
+     over: in=(0, 0, 0) min/med/max 16/16/48 > bound 38
+
+== while_true_break  (1001 inputs; in = n)
+   functional result correct      : 1001/1001
+   slowest run <= bound           : 1001/1001   (all runs, incl. interrupted: 1001/1001)
+   median run <= bound            : 1001/1001
+   slowest run / bound            : min 0.051, mean 0.068, max 0.659
+   interrupted runs (discarded)   : 1
+
+== find  (2002 inputs; in = len, idx (or not found))
+   functional result correct      : 2002/2002
+   slowest run <= bound           : 2001/2002   (all runs, incl. interrupted: 2001/2002)
+   median run <= bound            : 2002/2002
+   slowest run / bound            : min 0.038, mean 0.072, max 1.308
+   interrupted runs (discarded)   : 1
+     over: in=(1, 18446744073709551615, 0) min/med/max 13/13/102 > bound 78
+
+== collatz  (65536 inputs; in = n)
+   functional result correct      : 65536/65536
+   outside the proof precondition : 1 (not compared)
+   slowest run <= bound           : 65528/65535   (all runs, incl. interrupted: 65527/65535)
+   median run <= bound            : 65535/65535
+   slowest run / bound            : min 0.077, mean 0.206, max 11.786
+   interrupted runs (discarded)   : 33
+     over: in=(44625, 1, 0) min/med/max 231/244/33556 > bound 2847
+     over: in=(11789, 1, 0) min/med/max 273/273/33424 > bound 3325
+     over: in=(44627, 1, 0) min/med/max 232/254/23748 > bound 2847
+     over: in=(12073, 1, 0) min/med/max 123/131/2267 > bound 1920
+     over: in=(36471, 1, 0) min/med/max 47/86/730 > bound 681
+
+== find_in_list  (1032 inputs; in = len, idx (or not found)  [bound from Table 1, no proof])
+   functional result correct      : 1032/1032
+   slowest run <= bound           : 1032/1032   (all runs, incl. interrupted: 1032/1032)
+   median run <= bound            : 1032/1032
+   slowest run / bound            : min 0.043, mean 0.083, max 0.787
+   interrupted runs (discarded)   : 1
+
+== insert_after_pos_in_list  (1026 inputs; in = len, pos, kind (0 normal, 1 l=NULL, 2 value=NULL))
+   functional result correct      : 1026/1026
+   slowest run <= bound           : 1024/1026   (all runs, incl. interrupted: 1024/1026)
+   median run <= bound            : 1026/1026
+   slowest run / bound            : min 0.134, mean 0.215, max 1.396
+   interrupted runs (discarded)   : 0
+     over: in=(1, 0, 2) min/med/max 16/16/67 > bound 48
+     over: in=(0, 0, 1) min/med/max 16/16/48 > bound 37
+
+== insert_in_sorted_list  (1049 inputs; in = k, value, nodes passed over)
+   functional result correct      : 1049/1049
+   slowest run <= bound           : 1046/1049   (all runs, incl. interrupted: 1045/1049)
+   median run <= bound            : 1049/1049
+   slowest run / bound            : min 0.175, mean 0.272, max 4.137
+   interrupted runs (discarded)   : 1
+     over: in=(16, 5, 1) min/med/max 19/19/393 > bound 95
+     over: in=(0, 100, 0) min/med/max 14/14/90 > bound 72
+     over: in=(10, 2147483647, 0) min/med/max 15/15/56 > bound 54
+
+TOTAL: 72632/72646 inputs within the bound in every uninterrupted run; 72630/72646 counting interrupted runs too (38 interrupted runs discarded)

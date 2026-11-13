@@ -1,0 +1,14 @@
+jz:                    5 cycles
+jnz:           5 cycles
+jnc:           5 cycles
+jc:            6 cycles
+jge:                   5 cycles
+jg:                    6 cycles
+jmp (addr):            5 cycles
+add r32, m32:          6 cycles
+shr r16, imm8:         5 cycles
+lea r32, addr:         5 cycles
+lea r64, addr:         6 cycles
+nop:                   1 cycles
+mov r64, m64:          6 cycles
+cmp r64, m64:          6 cycles

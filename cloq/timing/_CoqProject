@@ -1,0 +1,12 @@
+-R .. Picinae
+TimingAutomation.v
+riscv/RVCPUTimingBehavior.v
+riscv/RISCVTiming.v
+riscv/NEORV32.v
+amd64/amd64CPUTimingBehavior.v
+amd64/AMD64Timing.v
+amd64/i5_7300u.v
+armv6m/ARMv6MCPUTimingBehavior.v
+armv6m/ARMv6MTiming.v
+armv6m/CortexM0NoWait.v
+memsolve.v

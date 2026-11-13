@@ -1,0 +1,22 @@
+# common
+
+average execution time is usually 2-3 orders of magnitude smaller than predicted WCET
+
+results are wildly variable, up to 3 orders of magnitude difference between runs.
+Likely due to variability in hardware runtimes
+
+# collatz
+
+Rapitime completely locks up even with loop annotations, seemingly can't handle so many deep loops that iterate so many times
+
+# arraysearch
+
+
+
+## Proofs
+
+while_true_break: 5 hours
+cache proof: 30 minutes
+collatz: 3 hours (excluding linearity problem)
+insert_after_pos_in_list: 3 hours
+insert_in_sorted_list: 1 hour, mostly copied from RISC-V, minor keyword replacement
