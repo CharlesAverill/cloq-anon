@@ -33,6 +33,7 @@ RUN mkdir -p /artifact/results && chown -R rocq:rocq /artifact
 USER rocq
 WORKDIR /artifact/tig
 COPY --chown=rocq:rocq tig/requirements.txt /artifact/tig/requirements.txt
+COPY --chown=rocq:rocq tig/vendor/ /artifact/tig/vendor/
 # TIG was evaluated on CPython 3.12 in a uv-managed venv; Debian 12 ships 3.11
 RUN python3 -m venv /tmp/uvenv && /tmp/uvenv/bin/pip install --no-cache-dir uv==0.10.11 \
     && /tmp/uvenv/bin/uv venv --python 3.12 .venv \

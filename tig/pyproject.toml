@@ -10,7 +10,7 @@ matplotlib = "^3.10.1"
 sympy = "^1.13.3"
 networkx = "^3.4.2"
 # angr = "^9.2.148"
-pypcode = { git = "https://github.com/spencerwuwu/pypcode" }
+pypcode = { path = "vendor/pypcode" }
 angr = "^9.2.152"
 
 [tool.uv.sources]

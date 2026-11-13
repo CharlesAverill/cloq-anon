@@ -53,4 +53,4 @@ tomli==2.2.1
 typing_extensions==4.13.2
 unique_log_filter==0.1.0
 z3_solver==4.13.0.0
-pypcode @ git+https://github.com/spencerwuwu/pypcode@9d0d2433301bc1a389b7426dd89c966fb4084757
+pypcode @ file:///artifact/tig/vendor/pypcode
