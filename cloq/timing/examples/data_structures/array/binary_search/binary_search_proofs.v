@@ -215,11 +215,18 @@ Definition postcondition (base_mem : memory) (arr key len : N) (s : store) (t : 
     (s R_A0 = 2^32 - 1 /\
         N.log2 (len + 1) <= k <= N.size len /\ time_of_binary_search false k t).
 
+(* Invariants at every instruction: each proof case symbolically executes a
+   single instruction, which keeps the proof term small enough for the kernel
+   to check at Qed. *)
 Definition binary_search_timing_invs (base_mem : memory) (arr key len : N)
         (t:trace) : option Prop :=
 match t with (Addr a, s) :: t' => match a with
 | 0x1e4 => Some (s V_MEM32 = base_mem /\ s R_A0 = arr /\ s R_A1 = len /\
             s R_A2 = key /\ cycle_count_of_trace t' = 0)
+| 0x1e8 => Some (s V_MEM32 = base_mem /\ s R_A3 = arr /\ s R_A1 = len /\
+            s R_A2 = key /\ cycle_count_of_trace t' = taddi)
+| 0x1ec => Some (s V_MEM32 = base_mem /\ s R_A3 = arr /\ s R_A1 = len ⊖ 1 /\
+            s R_A2 = key /\ cycle_count_of_trace t' = taddi + taddi)
 (* loop head: left = l, right = l + sz - 1, after k non-matching iterations *)
 | 0x1f0 => Some (exists k l sz,
     s V_MEM32 = base_mem /\ s R_A3 = arr /\ s R_A2 = key /\
@@ -228,7 +235,342 @@ match t with (Addr a, s) :: t' => match a with
     k + N.size sz <= N.size len /\
     N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
     cycle_count_of_trace t' = setup_time + k * body_time)
+(* left > right: about to return -1 *)
+| 0x1f4 => Some (exists k,
+    N.log2 (len + 1) <= k <= N.size len /\
+    cycle_count_of_trace t' = setup_time + k * body_time + tfbge)
 | 0x1f8 => Some (postcondition base_mem arr key len s t)
+| 0x1fc => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge))
+| 0x200 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = sz ⊖ 1 /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub))
+| 0x204 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1))
+| 0x208 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd))
+| 0x20c => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_A6 = ((sz ⊖ 1 >>> 1) + l << 2) mod 2 ^ 32 /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2))
+| 0x210 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_A6 = arr ⊕ ((sz ⊖ 1 >>> 1) + l << 2) /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd))
+| 0x214 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_A6 = base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw))
+| 0x218 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_A6 = base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] /\
+    s R_A0 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi))
+| 0x21c => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_A6 = base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq))
+| 0x220 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_A6 = base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] /\
+    s R_T0 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 else 0) /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu))
+| 0x224 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_T0 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 else 0) /\
+    s R_T1 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then 1 else 0) /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu))
+| 0x228 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_T0 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 else 0) /\
+    s R_T1 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then 1 else 0) /\
+    s R_T2 = 1 + (sz ⊖ 1 >>> 1) ⊕ l /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu + taddi))
+| 0x22c => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_T1 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then 1 else 0) /\
+    s R_T2 = 1 + (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_T3 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 4294967295 else 0) /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu + taddi + tsub))
+| 0x230 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = l /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_T1 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then 1 else 0) /\
+    s R_T2 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 + (sz ⊖ 1 >>> 1) ⊕ l else 0) /\
+    s R_T3 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 4294967295 else 0) /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu + taddi + tsub + tand))
+| 0x234 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_T1 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then 1 else 0) /\
+    s R_T2 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 + (sz ⊖ 1 >>> 1) ⊕ l else 0) /\
+    s R_T4 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 0 else l) /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu + taddi + tsub + tand + tandn))
+| 0x238 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 + (sz ⊖ 1 >>> 1) ⊕ l else l) /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_A4 = (sz ⊖ 1 >>> 1) ⊕ l /\
+    s R_T1 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then 1 else 0) /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu + taddi + tsub + tand + tandn + tor))
+| 0x23c => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 + (sz ⊖ 1 >>> 1) ⊕ l else l) /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_T1 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then 1 else 0) /\
+    s R_T2 = (sz ⊖ 1 >>> 1) ⊖ 1 ⊕ l /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu + taddi + tsub + tand + tandn + tor + taddi))
+| 0x240 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 + (sz ⊖ 1 >>> 1) ⊕ l else l) /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_T2 = (sz ⊖ 1 >>> 1) ⊖ 1 ⊕ l /\
+    s R_T3 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then 4294967295 else 0) /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu + taddi + tsub + tand + tandn + tor + taddi + tsub))
+| 0x244 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 + (sz ⊖ 1 >>> 1) ⊕ l else l) /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_T2 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then (sz ⊖ 1 >>> 1) ⊖ 1 ⊕ l else 0) /\
+    s R_T3 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then 4294967295 else 0) /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu + taddi + tsub + tand + tandn + tor + taddi + tsub + tand))
+| 0x248 => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 + (sz ⊖ 1 >>> 1) ⊕ l else l) /\
+    s R_A1 = l + sz ⊖ 1 /\
+    s R_T2 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then (sz ⊖ 1 >>> 1) ⊖ 1 ⊕ l else 0) /\
+    s R_T4 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then 0 else l + sz ⊖ 1) /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu + taddi + tsub + tand + tandn + tor + taddi + tsub + tand + tandn))
+| 0x24c => Some (exists k l sz,
+    s V_MEM32 = base_mem /\
+    s R_A3 = arr /\
+    s R_A2 = key /\
+    l + sz <= len /\
+    len < 2^31 /\
+    k + N.size sz <= N.size len /\
+    N.log2 (len + 1) <= k + N.log2 (sz + 1) /\
+    sz <> 0 /\
+    s R_A5 = (if base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] <? key then 1 + (sz ⊖ 1 >>> 1) ⊕ l else l) /\
+    s R_A1 = (if key <? base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] then (sz ⊖ 1 >>> 1) ⊖ 1 ⊕ l else l + sz ⊖ 1) /\
+    (base_mem Ⓓ[ arr + ((sz ⊖ 1 >>> 1) + l << 2) ] =? key) = false /\
+    cycle_count_of_trace t' =
+        setup_time + k * body_time + (ttbge + tsub + tsrai 1 + tadd + tslli 2 + tadd + tlw + taddi + tfbeq + tsltu + tsltu + taddi + tsub + tand + tandn + tor + taddi + tsub + tand + tandn + tor))
 | _ => None end | _ => None end.
 
 Theorem binary_search_timing:
@@ -261,65 +603,157 @@ Proof using.
     clear - ENTRY PRE MDL LEN. rename t1 into t. rename s1 into s'.
 
     destruct_inv 32 PRE.
-
-    (* 0x1e4 -> loop head *)
-    destruct PRE as (Mem & A0 & A1 & A2 & Cycles).
-    repeat step.
-    exists 0, 0, len. repeat split; auto; try lia.
-    unfold setup_time. hammer.
-
-    (* loop head *)
-    destruct PRE as (k & l & sz & Mem & A3 & A2 & A5 & A1 & LSZ & _ &
-        SIZE & LOG & Cycles).
-    step; rewrite loop_guard in BC by lia;
-        rewrite loop_guard_time in Cycles by lia.
-
-    (* left > right: return -1 *)
-    - apply N.eqb_eq in BC. subst sz. rewrite N.add_0_r in *.
-    repeat step.
-    unfold postcondition. exists k. right.
-    replace (N.log2 (0 + 1)) with 0 in LOG by reflexivity.
-    replace (N.size 0) with 0 in SIZE by reflexivity.
+    (* 0x1e4 *)
+    - destruct PRE as (Mem & A0 & A1 & A2 & Cycles).
+      step. repeat split; auto. hammer.
+    (* 0x1e8 *)
+    - destruct PRE as (Mem & A3 & A1 & A2 & Cycles).
+      step. repeat split; auto. hammer.
+    (* 0x1ec *)
+    - destruct PRE as (Mem & A3 & A1 & A2 & Cycles).
+      step. exists 0, 0, len. repeat split; auto; try lia.
+      unfold setup_time. hammer.
+    (* 0x1f0 *)
+    - destruct PRE as (k & l & sz & Mem & A3 & A2 & A5 & A1 & LSZ & LEN' &
+          SIZE & LOG & Cycles).
+      step; rewrite loop_guard in BC by lia.
+      + (* left > right *)
+        apply N.eqb_eq in BC. subst sz. exists k.
+        replace (N.log2 (0 + 1)) with 0 in LOG by reflexivity.
+        replace (N.size 0) with 0 in SIZE by reflexivity.
+        split. lia. hammer.
+        rewrite loop_guard_time by lia. simpl. lia.
+      + (* left <= right *)
+        apply N.eqb_neq in BC.
+        exists k, l, sz. repeat split; try assumption. hammer.
+        rewrite loop_guard_time by lia.
+        replace (negb (sz =? 0)) with true
+          by (symmetry; apply negb_true_iff, N.eqb_neq, BC).
+        lia.
+    (* 0x1f4 *)
+    - destruct PRE as (k & K & Cycles).
+      step. unfold postcondition. exists k. right.
       repeat split; try lia.
-      unfold time_of_binary_search, notfound_exit_time. hammer. simpl. lia.
-
-    (* left <= right: probe arr[mid] *)
-    - apply N.eqb_neq in BC.
-      replace (negb (sz =? 0)) with true in Cycles
-        by (symmetry; apply negb_true_iff, N.eqb_neq, BC).
-      repeat step; rewrite half_width in * by lia; set (h := (sz - 1) / 2) in *;
+      unfold time_of_binary_search, notfound_exit_time. hammer.
+    (* 0x1fc *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x200 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x204 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x208 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x20c *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x210 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x214 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x218 *)
+    - destruct PRE as (k & l & sz & Mem & A3 & A2 & LSZ & LEN' & SIZE & LOG & BC &
+          A5 & A1 & A4 & A6 & A0 & Cycles).
+      step.
+      + (* arr[mid] = key: return mid *)
+        rewrite half_width in * by lia; set (h := (sz - 1) / 2) in *;
         assert (HH: 2 * h <= sz - 1) by (unfold h; apply N.mul_div_le; lia);
-        rewrite (N.mod_small (h + l)) by lia.
-
-      (* arr[mid] = key: return mid *)
-      + unfold postcondition. exists k. left.
+        try rewrite (N.mod_small (h + l)) in * by lia.
+        unfold postcondition. exists k. left.
         pose proof (size_mono 1 sz ltac:(lia)). simpl (N.size 1) in *.
-        repeat split; try lia. (* lia also discharges arr[mid] = key from BC0 *)
-        unfold time_of_binary_search, found_exit_time. hammer.
-
-      (* arr[mid] <> key: branchless pointer update, back to the loop head *)
-      + set (M := base_mem Ⓓ[ arr + (h + l << 2) ]) in *.
-        destruct (M <? key) eqn:LT.
-        (* arr[mid] < key: left := mid + 1, interval shrinks to sz/2 *)
-        * replace (key <? M) with false
-            by (apply N.ltb_lt in LT; symmetry; apply N.ltb_ge; lia).
-          pose proof (size_go_right sz ltac:(lia)) as G1.
-          pose proof (log2_go_right sz ltac:(lia)) as G2. fold h in G1, G2.
-          exists (1 + k), (1 + h + l), (sz - 1 - h).
-          repeat split; auto; try lia.
-            replace (1 + h + l + (sz - 1 - h)) with (l + sz) by lia. reflexivity.
-          rewrite N.mul_add_distr_r, N.mul_1_l. remember (k * body_time) as KB.
-          unfold body_time. hammer.
-        (* key < arr[mid]: right := mid - 1, interval shrinks to (sz-1)/2 *)
-        * replace (key <? M) with true
-            by (apply N.ltb_ge in LT; apply N.eqb_neq in BC0; symmetry; apply N.ltb_lt; lia).
-          pose proof (size_go_left sz ltac:(lia)) as G1.
-          pose proof (log2_go_left sz ltac:(lia)) as G2. fold h in G1, G2.
-          exists (1 + k), l, h.
-          repeat split; auto; try lia.
-            apply decr_mod.
-          rewrite N.mul_add_distr_r, N.mul_1_l. remember (k * body_time) as KB.
-          unfold body_time. hammer.
+        repeat split; try lia.
+        all: unfold time_of_binary_search, found_exit_time; hammer.
+      + exists k, l, sz. repeat split; try assumption; try reflexivity.
+        hammer.
+    (* 0x21c *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x220 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x224 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x228 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x22c *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x230 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x234 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x238 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x23c *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x240 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x244 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x248 *)
+    - destruct PRE as (k & l & sz & PRE). decompose [and] PRE. clear PRE.
+      step. exists k, l, sz. repeat split; try assumption; try reflexivity.
+      hammer.
+    (* 0x24c *)
+    - destruct PRE as (k & l & sz & Mem & A3 & A2 & LSZ & LEN' & SIZE & LOG & BC &
+          A5 & A1 & BC0 & Cycles).
+      step. rewrite half_width in * by lia; set (h := (sz - 1) / 2) in *;
+        assert (HH: 2 * h <= sz - 1) by (unfold h; apply N.mul_div_le; lia);
+        try rewrite (N.mod_small (h + l)) in * by lia.
+      set (M := base_mem Ⓓ[ arr + (h + l << 2) ]) in *.
+      rewrite A5, A1.
+      destruct (M <? key) eqn:LT.
+      + (* arr[mid] < key: left := mid + 1, interval shrinks to sz/2 *)
+        replace (key <? M) with false
+          by (apply N.ltb_lt in LT; symmetry; apply N.ltb_ge; lia).
+        pose proof (size_go_right sz ltac:(lia)) as G1.
+        pose proof (log2_go_right sz ltac:(lia)) as G2. fold h in G1, G2.
+        exists (1 + k), (1 + h + l), (sz - 1 - h).
+        repeat split; auto; try lia.
+          replace (1 + h + l + (sz - 1 - h)) with (l + sz) by lia. reflexivity.
+        rewrite N.mul_add_distr_r, N.mul_1_l. remember (k * body_time) as KB.
+        unfold body_time. hammer.
+      + (* key < arr[mid]: right := mid - 1, interval shrinks to (sz-1)/2 *)
+        replace (key <? M) with true
+          by (apply N.ltb_ge in LT; apply N.eqb_neq in BC0; symmetry; apply N.ltb_lt; lia).
+        pose proof (size_go_left sz ltac:(lia)) as G1.
+        pose proof (log2_go_left sz ltac:(lia)) as G2. fold h in G1, G2.
+        exists (1 + k), l, h.
+        repeat split; auto; try lia.
+          apply decr_mod.
+        rewrite N.mul_add_distr_r, N.mul_1_l. remember (k * body_time) as KB.
+        unfold body_time. hammer.
 Qed.
 
 (* Closed-form lower and upper bounds *)

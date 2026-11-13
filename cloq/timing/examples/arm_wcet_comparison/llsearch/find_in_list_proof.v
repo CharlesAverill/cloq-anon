@@ -160,7 +160,7 @@ Proof using.
                 (inversion Len; [reflexivity | contradiction]).
             subst len. repeat split.
             intros. lia.
-            unfold time_of_find_in_list. hammer.
+            unfold time_of_find_in_list. hammer. unfold NULL. cbn. lia.
         -- (* l <> NULL: enter the loop *)
             apply N.eqb_neq in BC.
             exists 0%nat.

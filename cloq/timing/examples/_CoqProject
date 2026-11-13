@@ -15,7 +15,7 @@ data_structures/array/bubble_sort/tight_bound/bubble_sort_theta_n2_proof.v
 # data_structures/array/bubble_sort/exact_bound_sum/bubble_sort_theta_n2_proof_exact.v
 
 data_structures/array/binary_search/binary_search.v
-# WIP
+# Invariants at every instruction keep its Qed fast (see the file)
 data_structures/array/binary_search/binary_search_proofs.v
 
 # data_structures/linked_list/find_in_list_general/linked_list_general.v
